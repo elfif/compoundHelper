@@ -2,6 +2,8 @@ import "@nomiclabs/hardhat-waffle"
 import { task } from "hardhat/config";
 import { wallet } from "./config/consts";
 import "@nomiclabs/hardhat-solpp";
+import "@nomiclabs/hardhat-ethers";
+import '@nomiclabs/hardhat-etherscan';
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -33,7 +35,8 @@ export default {
       },
     ],
   },
-  defaultNetwork: "localhost",
+  defaultNetwork: "OxMainnet",
+  //defaultNetwork: "localhost",
   networks: {
     localhost: {
       'url': 'http://127.0.0.1:8545',
@@ -44,6 +47,9 @@ export default {
       chainId: 137,
       accounts: [wallet.privateKey]
     }
+  },
+  etherscan: {
+    apiKey: 'J216UIQZC5WPZNQIKD1CX38C8X8CVAQPAA'
   },
   solpp: {
     defs: {

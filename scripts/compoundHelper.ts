@@ -36,7 +36,8 @@ export async function compoundHelper() {
   
   const signer = await getImpersonatedSigner()
     
-  const Helper = await ethers.getContractFactory("contracts/LiquidityHelper.sol:LiquidityHelper", signer);
+  //const Helper = await ethers.getContractFactory("contracts/LiquidityHelper.sol:LiquidityHelper", signer);
+  const Helper = await ethers.getContractFactory("cache/solpp-generated-contracts/LiquidityHelper.sol:LiquidityHelper", signer);
   const helper = await Helper.deploy(
     _alchemicaTokens,
     _quickswapRouter,
@@ -81,16 +82,16 @@ export async function compoundHelper() {
         100
       ],[
         "0x44A6e0BE76e1D9620A7F76588e4509fE4fa8E8C8",
-        100
+        50
       ],[
         "0x6a3E7C3c6EF65Ee26975b12293cA1AAD7e1dAeD2",
-        100
+        0
       ],[
         "0x42E5E06EF5b90Fe15F853F59299Fc96259209c5C",
-        100
+        25
       ],[
-        "0x3801c3b3b5c98f88a9c9005966aa96aa440b9afc",  
-        100
+       "0x3801c3b3b5c98f88a9c9005966aa96aa440b9afc",  
+        75
       ]
     ]
   )

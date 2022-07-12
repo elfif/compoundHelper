@@ -70,7 +70,13 @@ contract LiquidityHelper {
         uint256 minAmount = 100000000000000000;
         
         for (uint256 i; i < param.length; i++) {
-            require(param[i].balancePercentage > 0 && param[i].balancePercentage <= 100, "Percentage must be > 0 && <= 100");
+            require(param[i].token == tokensAndLps[i][0], "token params mismatch");
+            require(param[i].balancePercentage >= 0 && param[i].balancePercentage <= 100, "Percentage must be > 0 && <= 100");
+
+            if (param[i].balancePercentage == 0) {
+                continue;
+            }
+
             uint256 amountToTransfer = IERC20(param[i].token).balanceOf(msg.sender).mul(param[i].balancePercentage).div(100);
             // #if DEV_MODE==1
             console.log("Alchemica", param[i].token, "Total Balance", IERC20(param[i].token).balanceOf(msg.sender));
