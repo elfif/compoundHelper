@@ -79,19 +79,19 @@ export async function compoundHelper() {
     [
       [
         "0x403E967b044d4Be25170310157cB1A4Bf10bdD0f",
-        100
+        0
       ],[
         "0x44A6e0BE76e1D9620A7F76588e4509fE4fa8E8C8",
-        50
+        0
       ],[
         "0x6a3E7C3c6EF65Ee26975b12293cA1AAD7e1dAeD2",
         0
       ],[
         "0x42E5E06EF5b90Fe15F853F59299Fc96259209c5C",
-        25
+        0
       ],[
        "0x3801c3b3b5c98f88a9c9005966aa96aa440b9afc",  
-        75
+        20
       ]
     ]
   )
