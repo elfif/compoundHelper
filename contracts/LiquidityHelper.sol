@@ -35,7 +35,7 @@ contract LiquidityHelper {
         address _owner
     ) {
         //approve ghst to be send to the router
-        IERC20(_ghst).approve(_routerAddress, type(uint256).max);
+        require(IERC20(_ghst).approve(_routerAddress, type(uint256).max));
         // approve alchemicas, GLTR and lp tokens 
         for (uint256 i; i < _tokensAndLps.length; i++) {
             // Approve that the contract can send main token to the router
@@ -60,7 +60,7 @@ contract LiquidityHelper {
         owner = _owner;
     }
 
-    function swapAndCoumpound(CompoundArgsStruct[] memory param) public returns (uint256[11] memory response) {
+    function swapAndCompound(CompoundArgsStruct[] memory param) public returns (uint256[11] memory response) {
         // For each alchemica + GLTR as token
         // We swap half param percentage of token in GHST
         // Then we will add to GHST / token pool the amount of GHST we swapped + needed amount of token 
@@ -82,7 +82,6 @@ contract LiquidityHelper {
             console.log("Alchemica", param[i].token, "Total Balance", IERC20(param[i].token).balanceOf(msg.sender));
             console.log("Alchemica", param[i].token, "To transfer", amountToTransfer);
             // #endif
-            require(amountToTransfer <= IERC20(param[i].token).balanceOf(msg.sender));
             IERC20(param[i].token).transferFrom(msg.sender, address(this), amountToTransfer);
             // #if DEV_MODE==1
             console.log('first transfer is done');
@@ -117,7 +116,6 @@ contract LiquidityHelper {
             // #endif
             // Check if the optimal GHST amount is <= to my GHST balance 
             require(ghstToAdd <= amounts[1]);
-            // (uint amount0, uint amount1, uint amountLp) = router.addLiquidity(
             (uint amountA , uint amountB, uint amountLp) = router.addLiquidity(
                 param[i].token,
                 GHST,
@@ -137,7 +135,6 @@ contract LiquidityHelper {
             // #if DEV_MODE==1
             console.log("Balance Lp", lpToken.balanceOf(address(this)));
             // #endif
-            lpToken.approve(msg.sender, amountLp);
             lpToken.transfer(msg.sender, amountLp);
             response[i] = amountLp;
 
