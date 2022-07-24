@@ -2,8 +2,8 @@ import { Signer } from "ethers";
 import { ethers, network } from "hardhat";
 
 export async function getImpersonatedSigner() :Promise<Signer> {
-  //const accountToImpersonate = "0x1A08B4d6497fa6D5970BD8f6C72BC5fBC8dD500e"
-  const accountToImpersonate = "0xb2EB6f3866a83d20b9DBCce86117BEC816FBaec7"
+  const accountToImpersonate = "0x1A08B4d6497fa6D5970BD8f6C72BC5fBC8dD500e"
+  //const accountToImpersonate = "0xb2EB6f3866a83d20b9DBCce86117BEC816FBaec7"
 
   await network.provider.request({
     method: "hardhat_impersonateAccount",
@@ -41,16 +41,14 @@ export async function checkBalances() {
 
   const _quickswapRouter = "0xa5e0829caced8ffdd4de3c43696c57f7d7a678ff";
   const ghst = "0x385eeac5cb85a38a9a07a70c73e0a3271cfb54a7";
-  const owner = "0xD4151c984e6CF33E04FFAAF06c3374B2926Ecc64"; //pixelcraft multisig
- 
+
   const signer = await getImpersonatedSigner()
     
   const Helper = await ethers.getContractFactory("LiquidityHelper", signer);
   const helper = await Helper.deploy(
     _alchemicaTokens,
     _quickswapRouter,
-    ghst,
-    owner
+    ghst
   );
 
   //@ts-ignore

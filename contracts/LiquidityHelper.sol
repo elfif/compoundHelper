@@ -22,7 +22,6 @@ contract LiquidityHelper {
     error LengthMismatch();
     IUniswapV2Router01 router;
     address GHST;
-    address owner;
     //0--fud 1--fomo 2--alpha 3--kek 4--GLTR
     address[2][5] tokensAndLps;
     
@@ -31,8 +30,7 @@ contract LiquidityHelper {
         // Second level is [token address, quickswap GHST / other token lp token address]
         address[2][5] memory _tokensAndLps, 
         address _routerAddress,
-        address _ghst,
-        address _owner
+        address _ghst
     ) {
         //approve ghst to be send to the router
         require(IERC20(_ghst).approve(_routerAddress, type(uint256).max));
@@ -57,7 +55,6 @@ contract LiquidityHelper {
         router = IUniswapV2Router01(_routerAddress);
         GHST = _ghst;
         tokensAndLps = _tokensAndLps;
-        owner = _owner;
     }
 
     function swapAndCompound(CompoundArgsStruct[] memory param) public returns (uint256[11] memory response) {

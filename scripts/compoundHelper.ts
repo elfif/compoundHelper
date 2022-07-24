@@ -32,8 +32,7 @@ export async function compoundHelper() {
 
   const _quickswapRouter = "0xa5e0829caced8ffdd4de3c43696c57f7d7a678ff";
   const ghst = "0x385eeac5cb85a38a9a07a70c73e0a3271cfb54a7";
-  const owner = "0xD4151c984e6CF33E04FFAAF06c3374B2926Ecc64"; //pixelcraft multisig
-  
+    
   const signer = await getImpersonatedSigner()
     
   //const Helper = await ethers.getContractFactory("contracts/LiquidityHelper.sol:LiquidityHelper", signer);
@@ -41,8 +40,7 @@ export async function compoundHelper() {
   const helper = await Helper.deploy(
     _alchemicaTokens,
     _quickswapRouter,
-    ghst,
-    owner
+    ghst
   );
 
   await helper.deployed();
@@ -75,23 +73,23 @@ export async function compoundHelper() {
     
   }
 
-  const data2 = await helper.swapAndCoumpound(
+  const data2 = await helper.swapAndCompound(
     [
       [
         "0x403E967b044d4Be25170310157cB1A4Bf10bdD0f",
-        0
+        100
       ],[
         "0x44A6e0BE76e1D9620A7F76588e4509fE4fa8E8C8",
-        0
+        100
       ],[
         "0x6a3E7C3c6EF65Ee26975b12293cA1AAD7e1dAeD2",
-        0
+        100
       ],[
         "0x42E5E06EF5b90Fe15F853F59299Fc96259209c5C",
-        0
+        100
       ],[
        "0x3801c3b3b5c98f88a9c9005966aa96aa440b9afc",  
-        20
+        100
       ]
     ]
   )
