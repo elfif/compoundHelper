@@ -37,21 +37,23 @@ contract LiquidityHelper {
         address _farm
     ) {
         //approve ghst to be send to the router
-        require(IERC20(_ghst).approve(_routerAddress, type(uint256).max));
+        require(IERC20(_ghst).approve(_routerAddress, type(uint256).max), "router approval failed");
         // approve alchemicas, GLTR and lp tokens 
         for (uint256 i; i < _tokensAndLps.length; i++) {
             // Approve that the contract can send main token to the router
             require(
                 IERC20(_tokensAndLps[i][0]).approve(
                     _routerAddress,
-                    type(uint256).max
+                    type(uint256).max, 
+                    "alchemica approval failed"
                 )
             );
             // Approve that the contract can send related lp token to the router
             require(
                 IERC20(_tokensAndLps[i][1]).approve(
                     _routerAddress,
-                    type(uint256).max
+                    type(uint256).max, 
+                    "alchemica approval failed"
                 )
             );
         }
@@ -68,7 +70,7 @@ contract LiquidityHelper {
         // Then we will add to GHST / token pool the amount of GHST we swapped + needed amount of token 
         // Then we transfer back the lp tokens to msg.sender
 
-        require(param.length == 5);
+        require(param.length == 5, "parameters array length mismatch expected 5");
         uint256 minAmount = 100000000000000000;
         
         for (uint256 i; i < param.length; i++) {
@@ -117,7 +119,7 @@ contract LiquidityHelper {
             console.log("token B to be added", ghstToAdd);
             // #endif
             // Check if the optimal GHST amount is <= to my GHST balance 
-            require(ghstToAdd <= amounts[1]);
+            require(ghstToAdd <= amounts[1], "Not enough GHST in the contract");
             (uint amountA , uint amountB, uint amountLp) = router.addLiquidity(
                 param[i].token,
                 GHST,
@@ -126,7 +128,7 @@ contract LiquidityHelper {
                 alchemicaToAdd - alchemicaToAdd.div(100).mul(3),
                 ghstToAdd - ghstToAdd.div(100).mul(3),
                 address(this),
-                block.timestamp + 3000
+                block.timestamp + 180
             );
             // #if DEV_MODE==1
             console.log('Finished adding liquidity');           
