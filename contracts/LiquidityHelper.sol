@@ -44,17 +44,17 @@ contract LiquidityHelper {
             require(
                 IERC20(_tokensAndLps[i][0]).approve(
                     _routerAddress,
-                    type(uint256).max, 
-                    "alchemica approval failed"
-                )
+                    type(uint256).max
+                ), 
+                "alchemica approval failed"
             );
             // Approve that the contract can send related lp token to the router
             require(
                 IERC20(_tokensAndLps[i][1]).approve(
                     _routerAddress,
-                    type(uint256).max, 
-                    "alchemica approval failed"
-                )
+                    type(uint256).max
+                ), 
+                "alchemica approval failed"
             );
         }
 
@@ -165,55 +165,117 @@ contract LiquidityHelper {
         return response;
     }
 
-    function removeFromLp(boolean[] memory param) public returns (uint256[6] memory response) {
+    function removeFromLp(bool[] memory param) public returns (uint256[6] memory response) {
         require(param.length == 5);
         uint256 minAmount = 100000000000000000;
         for (uint256 i; i < param.length; i++) {
+            console.log('LP token to handle', tokensAndLps[i][1]);
             if (!param[i]) { 
+                console.log("param is false");
                 continue;
             }
             // First are there any of that LpToken to transfer. We test gt(0) just in case we have to handle USDC pool some day
             uint256 lpBalance = IERC20(tokensAndLps[i][1]).balanceOf(msg.sender);
-            require(IERC20(lpBalance).gt(0))
+            console.log("Lp Balance to remove: ", lpBalance);
+            if (lpBalance == 0) {
+                continue;
+            } 
             // We transfer all sender Lp token to the contract
             IERC20(tokensAndLps[i][1]).transferFrom(msg.sender, address(this), lpBalance);
+            console.log("LP Tokens transferred to the contract");
             // We ask the router to remove those from the LP
             // We do not specify any minAmount
             // Required calculations are supposed to have taken place before contract call
-            removeLiquidity(
+            router.removeLiquidity(
                 tokensAndLps[i][0],
                 GHST,
                 lpBalance,
                 0,
                 0,
-                address(this)
+                address(this),
                 block.timestamp+300
-            )
-
+            );
             // Now we swap all the GHST to alchemica
             address[] memory path = new address[](2);
             path[0] = GHST;
             path[1] = tokensAndLps[i][0];
             uint256[] memory amounts = router.swapExactTokensForTokens(
-                IERC20(tokensAndLps[i][0]).balanceOf(address(this))
+                IERC20(GHST).balanceOf(address(this)),
                 minAmount,
                 path,
                 address(this),
-                block.timestamp + 30
+                block.timestamp + 60
             );
-            uint256 alcBalance = IERC20(tokensAndLps[i][0]).balanceOf(msg.sender)
-            IERC20(tokensAndLps[i][0]).transfer(msg.sender, alcBalance)
+            uint256 alcBalance = IERC20(tokensAndLps[i][0]).balanceOf(address(this));
+            IERC20(tokensAndLps[i][0]).transfer(msg.sender, alcBalance);
             response[i] = alcBalance;
         }
         // In case we have any GHST left, we return them to sender
-                if (IERC20(GHST).balanceOf(address(this)) > 0) {
+        if (IERC20(GHST).balanceOf(address(this)) > 0) {
             IERC20(GHST).transfer(msg.sender, IERC20(GHST).balanceOf(address(this)));
-            // #if DEV_MODE==1
-            console.log("Final GHST traansfer back to sender", IERC20(GHST).balanceOf(address(this)));
-            // #endif
-            response[6] = IERC20(GHST).balanceOf(address(this));
+            response[5] = IERC20(GHST).balanceOf(address(this));
         } 
+
     }
+
+/**
+    getAllBalances
+    returns BalanceStruct array
+    0 => msg.sender FUD balance
+    1 => msg.sender LP balance staked in FUD-GHST farm  
+    2 => msg.sender FUD balance stored staked in FUD-GHST farm  
+    3 => msg.sender GHST balance stored staked in FUD-GHST farm
+    4 => msg.sender FUD-GHST LP balance in wallet
+    5 => msg.sender FUD balance stored in FUD-GHST LP balance in wallet
+    6 => msg.sender GHST balance stored in FUD-GHST LP balance in wallet
+    7 => total FUD-GHST supply
+    8 => total FUD balance in FUD-GHST LP
+    9 => total GHST balance in FUD-GHST LP
+
+    10 => msg.sender FOMO balance
+    11 => msg.sender LP balance staked in FOMO-GHST farm  
+    12 => msg.sender FOMO balance stored staked in FOMO-GHST farm  
+    13 => msg.sender GHST balance stored staked in FOMO-GHST farm
+    14 => msg.sender FOMO-GHST LP balance in wallet
+    15 => msg.sender FOMO balance stored in FOMO-GHST LP balance in wallet
+    16 => msg.sender GHST balance stored in FOMO-GHST LP balance in wallet
+    17 => total FOMO-GHST supply
+    18 => total FOMO balance in FOMO-GHST LP
+    19 => total GHST balance in FOMO-GHST LP
+
+    20 => msg.sender ALPHA balance
+    21 => msg.sender LP balance staked in ALPHA-GHST farm  
+    22 => msg.sender ALPHA balance stored staked in ALPHA-GHST farm  
+    23 => msg.sender GHST balance stored staked in ALPHA-GHST farm
+    24 => msg.sender ALPHA-GHST LP balance in wallet
+    25 => msg.sender ALPHA balance stored in ALPHA-GHST LP balance in wallet
+    26 => msg.sender GHST balance stored in ALPHA-GHST LP balance in wallet
+    27 => total ALPHA-GHST supply
+    28 => total ALPHA balance in ALPHA-GHST LP
+    29 => total GHST balance in ALPHA-GHST LP
+
+    30 => msg.sender KEK balance
+    31 => msg.sender LP balance staked in KEK-GHST farm  
+    32 => msg.sender KEK balance stored staked in KEK-GHST farm  
+    33 => msg.sender GHST balance stored staked in KEK-GHST farm
+    34 => msg.sender KEK-GHST LP balance in wallet
+    35 => msg.sender KEK balance stored in KEK-GHST LP balance in wallet
+    36 => msg.sender GHST balance stored in KEK-GHST LP balance in wallet
+    37 => total KEK-GHST supply
+    38 => total KEK balance in KEK-GHST LP
+    39 => total GHST balance in KEK-GHST LP
+
+    40 => msg.sender GLTR balance
+    41 => msg.sender LP balance staked in GLTR-GHST farm  
+    42 => msg.sender GLTR balance stored staked in GLTR-GHST farm  
+    43 => msg.sender GHST balance stored staked in GLTR-GHST farm
+    44 => msg.sender GLTR-GHST LP balance in wallet
+    45 => msg.sender GLTR balance stored in GLTR-GHST LP balance in wallet
+    46 => msg.sender GHST balance stored in GLTR-GHST LP balance in wallet
+    47 => total GLTR-GHST supply
+    48 => total GLTR balance in GLTR-GHST LP
+    49 => total GHST balance in GLTR-GHST LP
+ */
 
     function getAllBalances() public view returns (BalanceStruct[] memory) {
         // #if DEV_MODE==1
@@ -221,7 +283,7 @@ contract LiquidityHelper {
         console.log("tokensAndLps.length", tokensAndLps.length);
         console.log("tokensAndLps[0].length", tokensAndLps[0].length);
         // #endif
-        uint size = 20;
+        uint size = 50;
         BalanceStruct[] memory balances = new BalanceStruct[](size);
         uint8 balancesIndex = 0;
 
@@ -240,48 +302,81 @@ contract LiquidityHelper {
         
         // Get balances of all alchemicas
         for (uint256 i; i < tokensAndLps.length; i++) {
-            // Main token balance
-            BalanceStruct memory balanceAlc = BalanceStruct(
+            // 0 => msg.sender ALC balance
+            balances[balancesIndex] = BalanceStruct(
                 tokensAndLps[i][0],
                 IERC20(tokensAndLps[i][0]).balanceOf(msg.sender)
             );
-            console.log(balanceAlc.token, balanceAlc.balance);
-            balances[balancesIndex] = balanceAlc;
             balancesIndex++;
 
-            //LP Token balance0
-            BalanceStruct memory balanceLp = BalanceStruct(
+            // 1 => msg.sender LP balance staked in ALC-GHST farm  
+            balances[balancesIndex] = BalanceStruct(
                 tokensAndLps[i][1],
                 alchemicaFarms[i]
             );
-            console.log(balanceLp.token, balanceLp.balance);
-            balances[balancesIndex] = balanceLp;
             balancesIndex++;
 
-            // GHST and Alchemica balances in LP
+            // We get GHST and Alchemica balances that are in the pool TOTAL
             uint256 LpSupply = IERC20(tokensAndLps[i][1]).totalSupply();
-            console.log('LpSupply', LpSupply);
             uint256 AlcLpSupply = IERC20(tokensAndLps[i][0]).balanceOf(tokensAndLps[i][1]);
-            console.log('AlcLpSupply', AlcLpSupply);
             uint256 GhstLpSupply = IERC20(GHST).balanceOf(tokensAndLps[i][1]);
-            console.log('GhstLpSupply', GhstLpSupply);
+
             
-            // Alchemica balance in LP
-            BalanceStruct memory AlcInLpBalanceLp = BalanceStruct(
+            // 2 => msg.sender ALC balance stored staked in ALC-GHST farm
+            balances[balancesIndex] = BalanceStruct(
                 tokensAndLps[i][0],
                 alchemicaFarms[i].mul(AlcLpSupply).div(LpSupply)
             );
-            console.log(AlcInLpBalanceLp.token, AlcInLpBalanceLp.balance);
-            balances[balancesIndex] = AlcInLpBalanceLp;
             balancesIndex++;
 
-            // sender GHST balance in LP
-            BalanceStruct memory ghstInLpBalance = BalanceStruct(
+            // 3 => msg.sender GHST balance stored staked in ALC-GHST farm
+            balances[balancesIndex] = BalanceStruct(
                 GHST,
                 alchemicaFarms[i].mul(GhstLpSupply).div(LpSupply)
             );
-            console.log(ghstInLpBalance.token, ghstInLpBalance.balance);
-            balances[balancesIndex] = ghstInLpBalance;
+            balancesIndex++;
+
+            // 4 => msg.sender ALC-GHST LP balance in wallet
+            uint256 WalletLpSupply = IERC20(tokensAndLps[i][1]).balanceOf(msg.sender);
+            balances[balancesIndex] = BalanceStruct(
+                tokensAndLps[i][1],
+                WalletLpSupply
+            );
+            balancesIndex++;
+
+            // 5 => msg.sender ALC balance stored in ALC-GHST LP balance in wallet
+            balances[balancesIndex] = BalanceStruct(
+                tokensAndLps[i][0],
+                WalletLpSupply.mul(AlcLpSupply).div(LpSupply)
+            );
+            balancesIndex++;
+
+            // 6 => msg.sender GHST balance stored in ALC-GHST LP balance in wallet
+            balances[balancesIndex] = BalanceStruct(
+                GHST,
+                WalletLpSupply.mul(GhstLpSupply).div(LpSupply)
+            );
+            balancesIndex++;
+
+            // 7 => total ALC-GHST supply
+            balances[balancesIndex] = BalanceStruct(
+                tokensAndLps[i][1],
+                LpSupply
+            );
+            balancesIndex++;
+
+            // 8 => total ALC supply in ALC-GHST LP
+            balances[balancesIndex] = BalanceStruct(
+                tokensAndLps[i][0],
+                AlcLpSupply
+            );
+            balancesIndex++;
+
+            // 9 => total GHST supply  in ALC-GHST LP
+            balances[balancesIndex] = BalanceStruct(
+                GHST,
+                GhstLpSupply
+            );
             balancesIndex++;
 
         }
