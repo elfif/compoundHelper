@@ -18,8 +18,7 @@ struct BalanceStruct {
 }
 
 contract LiquidityHelper {
-
-    using SafeMath for uint;
+    using SafeMath for uint256;
 
     error LengthMismatch();
     IUniswapV2Router01 router;
@@ -27,25 +26,28 @@ contract LiquidityHelper {
     address farm;
     //0--fud 1--fomo 2--alpha 3--kek 4--GLTR
     address[2][5] tokensAndLps;
-    
+
     constructor(
         // First level is one item per alchemica + GLTR = 5 items
         // Second level is [token address, quickswap GHST / other token lp token address]
-        address[2][5] memory _tokensAndLps, 
+        address[2][5] memory _tokensAndLps,
         address _routerAddress,
         address _ghst,
         address _farm
     ) {
         //approve ghst to be send to the router
-        require(IERC20(_ghst).approve(_routerAddress, type(uint256).max), "router approval failed");
-        // approve alchemicas, GLTR and lp tokens 
+        require(
+            IERC20(_ghst).approve(_routerAddress, type(uint256).max),
+            "router approval failed"
+        );
+        // approve alchemicas, GLTR and lp tokens
         for (uint256 i; i < _tokensAndLps.length; i++) {
             // Approve that the contract can send main token to the router
             require(
                 IERC20(_tokensAndLps[i][0]).approve(
                     _routerAddress,
                     type(uint256).max
-                ), 
+                ),
                 "alchemica approval failed"
             );
             // Approve that the contract can send related lp token to the router
@@ -53,7 +55,7 @@ contract LiquidityHelper {
                 IERC20(_tokensAndLps[i][1]).approve(
                     _routerAddress,
                     type(uint256).max
-                ), 
+                ),
                 "alchemica approval failed"
             );
         }
@@ -64,31 +66,61 @@ contract LiquidityHelper {
         tokensAndLps = _tokensAndLps;
     }
 
-    function swapAndCompound(CompoundArgsStruct[] memory param) public returns (uint256[11] memory response) {
+    function swapAndCompound(CompoundArgsStruct[] memory param)
+        public
+        returns (uint256[11] memory response)
+    {
         // For each alchemica + GLTR as token
         // We swap half param percentage of token in GHST
-        // Then we will add to GHST / token pool the amount of GHST we swapped + needed amount of token 
+        // Then we will add to GHST / token pool the amount of GHST we swapped + needed amount of token
         // Then we transfer back the lp tokens to msg.sender
 
-        require(param.length == 5, "parameters array length mismatch expected 5");
+        require(
+            param.length == 5,
+            "parameters array length mismatch expected 5"
+        );
         uint256 minAmount = 100000000000000000;
-        
+
         for (uint256 i; i < param.length; i++) {
-            require(param[i].token == tokensAndLps[i][0], "token params mismatch");
-            require(param[i].balancePercentage >= 0 && param[i].balancePercentage <= 100, "Percentage must be > 0 && <= 100");
+            require(
+                param[i].token == tokensAndLps[i][0],
+                "token params mismatch"
+            );
+            require(
+                param[i].balancePercentage >= 0 &&
+                    param[i].balancePercentage <= 100,
+                "Percentage must be > 0 && <= 100"
+            );
 
             if (param[i].balancePercentage == 0) {
                 continue;
             }
 
-            uint256 amountToTransfer = IERC20(param[i].token).balanceOf(msg.sender).mul(param[i].balancePercentage).div(100);
+            uint256 amountToTransfer = IERC20(param[i].token)
+                .balanceOf(msg.sender)
+                .mul(param[i].balancePercentage)
+                .div(100);
             // #if DEV_MODE==1
-            console.log("Alchemica", param[i].token, "Total Balance", IERC20(param[i].token).balanceOf(msg.sender));
-            console.log("Alchemica", param[i].token, "To transfer", amountToTransfer);
+            console.log(
+                "Alchemica",
+                param[i].token,
+                "Total Balance",
+                IERC20(param[i].token).balanceOf(msg.sender)
+            );
+            console.log(
+                "Alchemica",
+                param[i].token,
+                "To transfer",
+                amountToTransfer
+            );
             // #endif
-            IERC20(param[i].token).transferFrom(msg.sender, address(this), amountToTransfer);
+            IERC20(param[i].token).transferFrom(
+                msg.sender,
+                address(this),
+                amountToTransfer
+            );
             // #if DEV_MODE==1
-            console.log('first transfer is done');
+            console.log("first transfer is done");
             // #endif
             // I set % at 52 instead of 50 to secure 2 things
             // * Be sure i will spend all alchemicas transfered initially
@@ -97,7 +129,7 @@ contract LiquidityHelper {
             path[0] = param[i].token;
             path[1] = GHST;
             // #if DEV_MODE==1
-            console.log('before router call');
+            console.log("before router call");
             // #endif
             uint256[] memory amounts = router.swapExactTokensForTokens(
                 amountToTransfer.mul(52).div(100),
@@ -107,31 +139,35 @@ contract LiquidityHelper {
                 block.timestamp + 3000
             );
             // #if DEV_MODE==1
-            console.log('swap is done', amounts[0], amounts[1]);
-            console.log('Start adding liquidity');
+            console.log("swap is done", amounts[0], amounts[1]);
+            console.log("Start adding liquidity");
             // #endif
             // Get the balance of alchemica remaining in the contract
-            uint256 alchemicaToAdd = IERC20(param[i].token).balanceOf(address(this));
+            uint256 alchemicaToAdd = IERC20(param[i].token).balanceOf(
+                address(this)
+            );
             // Ask the router how much GHST i could get for it. It is my way to know how much GHST i wiull try to add to the pool
-            uint ghstToAdd = router.getAmountsOut(alchemicaToAdd, path)[1].mul(1004).div(1000);
+            uint256 ghstToAdd = router
+            .getAmountsOut(alchemicaToAdd, path)[1].mul(1004).div(1000);
             // #if DEV_MODE==1
             console.log("token A to be added", alchemicaToAdd);
             console.log("token B to be added", ghstToAdd);
             // #endif
-            // Check if the optimal GHST amount is <= to my GHST balance 
+            // Check if the optimal GHST amount is <= to my GHST balance
             require(ghstToAdd <= amounts[1], "Not enough GHST in the contract");
-            (uint amountA , uint amountB, uint amountLp) = router.addLiquidity(
-                param[i].token,
-                GHST,
-                alchemicaToAdd,
-                ghstToAdd,
-                alchemicaToAdd - alchemicaToAdd.div(100).mul(3),
-                ghstToAdd - ghstToAdd.div(100).mul(3),
-                address(this),
-                block.timestamp + 180
-            );
+            (uint256 amountA, uint256 amountB, uint256 amountLp) = router
+                .addLiquidity(
+                    param[i].token,
+                    GHST,
+                    alchemicaToAdd,
+                    ghstToAdd,
+                    alchemicaToAdd - alchemicaToAdd.div(100).mul(3),
+                    ghstToAdd - ghstToAdd.div(100).mul(3),
+                    address(this),
+                    block.timestamp + 180
+                );
             // #if DEV_MODE==1
-            console.log('Finished adding liquidity');           
+            console.log("Finished adding liquidity");
             console.log("token A added", amountA);
             console.log("token B added", amountB);
             // #endif
@@ -144,45 +180,78 @@ contract LiquidityHelper {
 
             if (IERC20(param[i].token).balanceOf(address(this)) > 0) {
                 // This case is the one we want to avoid because of how much extra gas it is.....
-                IERC20(param[i].token).transfer(msg.sender, IERC20(param[i].token).balanceOf(address(this)));
+                IERC20(param[i].token).transfer(
+                    msg.sender,
+                    IERC20(param[i].token).balanceOf(address(this))
+                );
                 // #if DEV_MODE==1
-                console.log("Remaining alchemica dust to transfer back....", param[i].token, IERC20(param[i].token).balanceOf(address(this)));
+                console.log(
+                    "Remaining alchemica dust to transfer back....",
+                    param[i].token,
+                    IERC20(param[i].token).balanceOf(address(this))
+                );
                 // #endif
-                response[i.add(6)] = IERC20(param[i].token).balanceOf(address(this));
+                response[i.add(6)] = IERC20(param[i].token).balanceOf(
+                    address(this)
+                );
             }
         }
 
-        // Loop is done all tokens sent back except GHST 
+        // Loop is done all tokens sent back except GHST
         // Time to transfer remainings back
         if (IERC20(GHST).balanceOf(address(this)) > 0) {
-            IERC20(GHST).transfer(msg.sender, IERC20(GHST).balanceOf(address(this)));
+            IERC20(GHST).transfer(
+                msg.sender,
+                IERC20(GHST).balanceOf(address(this))
+            );
             // #if DEV_MODE==1
-            console.log("Final GHST traansfer back to sender", IERC20(GHST).balanceOf(address(this)));
+            console.log(
+                "Final GHST traansfer back to sender",
+                IERC20(GHST).balanceOf(address(this))
+            );
             // #endif
             response[6] = IERC20(GHST).balanceOf(address(this));
-        }       
+        }
 
         return response;
     }
 
-    function removeFromLp(bool[] memory param) public returns (uint256[6] memory response) {
+    function removeFromLp(bool[] memory param, bool swap)
+        public
+        returns (uint256[6] memory response)
+    {
         require(param.length == 5);
         uint256 minAmount = 100000000000000000;
         for (uint256 i; i < param.length; i++) {
-            console.log('LP token to handle', tokensAndLps[i][1]);
-            if (!param[i]) { 
+            // #if DEV_MODE==1
+            console.log("LP token to handle", tokensAndLps[i][1]);
+            // #endif
+            if (!param[i]) {
+                // #if DEV_MODE==1
                 console.log("param is false");
+                // #endif
                 continue;
             }
             // First are there any of that LpToken to transfer. We test gt(0) just in case we have to handle USDC pool some day
-            uint256 lpBalance = IERC20(tokensAndLps[i][1]).balanceOf(msg.sender);
+            uint256 lpBalance = IERC20(tokensAndLps[i][1]).balanceOf(
+                msg.sender
+            );
+            // #if DEV_MODE==1
             console.log("Lp Balance to remove: ", lpBalance);
+            // #endif
             if (lpBalance == 0) {
                 continue;
-            } 
+            }
             // We transfer all sender Lp token to the contract
-            IERC20(tokensAndLps[i][1]).transferFrom(msg.sender, address(this), lpBalance);
+            IERC20(tokensAndLps[i][1]).transferFrom(
+                msg.sender,
+                address(this),
+                lpBalance
+            );
+            // #if DEV_MODE==1
             console.log("LP Tokens transferred to the contract");
+            // #endif
+
             // We ask the router to remove those from the LP
             // We do not specify any minAmount
             // Required calculations are supposed to have taken place before contract call
@@ -193,33 +262,39 @@ contract LiquidityHelper {
                 0,
                 0,
                 address(this),
-                block.timestamp+300
+                block.timestamp + 300
             );
-            // Now we swap all the GHST to alchemica
-            address[] memory path = new address[](2);
-            path[0] = GHST;
-            path[1] = tokensAndLps[i][0];
-            uint256[] memory amounts = router.swapExactTokensForTokens(
-                IERC20(GHST).balanceOf(address(this)),
-                minAmount,
-                path,
-                address(this),
-                block.timestamp + 60
+            // Now we swap all the GHST to alchemica if swap == true
+            if (swap) {
+                address[] memory path = new address[](2);
+                path[0] = GHST;
+                path[1] = tokensAndLps[i][0];
+                router.swapExactTokensForTokens(
+                    IERC20(GHST).balanceOf(address(this)),
+                    minAmount,
+                    path,
+                    address(this),
+                    block.timestamp + 60
+                );
+            }
+
+            uint256 alcBalance = IERC20(tokensAndLps[i][0]).balanceOf(
+                address(this)
             );
-            uint256 alcBalance = IERC20(tokensAndLps[i][0]).balanceOf(address(this));
             IERC20(tokensAndLps[i][0]).transfer(msg.sender, alcBalance);
             response[i] = alcBalance;
         }
         // In case we have any GHST left, we return them to sender
         if (IERC20(GHST).balanceOf(address(this)) > 0) {
-            IERC20(GHST).transfer(msg.sender, IERC20(GHST).balanceOf(address(this)));
+            IERC20(GHST).transfer(
+                msg.sender,
+                IERC20(GHST).balanceOf(address(this))
+            );
             response[5] = IERC20(GHST).balanceOf(address(this));
-        } 
-
+        }
     }
 
-/**
-    getAllBalances
+    /** getAllBalances
     returns BalanceStruct array
     0 => msg.sender FUD balance
     1 => msg.sender LP balance staked in FUD-GHST farm  
@@ -283,11 +358,12 @@ contract LiquidityHelper {
         console.log("tokensAndLps.length", tokensAndLps.length);
         console.log("tokensAndLps[0].length", tokensAndLps[0].length);
         // #endif
-        uint size = 50;
+        uint256 size = 50;
         BalanceStruct[] memory balances = new BalanceStruct[](size);
         uint8 balancesIndex = 0;
 
-        AavegotchiFarm.UserInfoOutput[] memory data = AavegotchiFarm(farm).allUserInfo(msg.sender);
+        AavegotchiFarm.UserInfoOutput[] memory data = AavegotchiFarm(farm)
+            .allUserInfo(msg.sender);
         uint256[5] memory alchemicaFarms;
         // FUD
         alchemicaFarms[0] = data[1].userBalance;
@@ -299,7 +375,7 @@ contract LiquidityHelper {
         alchemicaFarms[3] = data[4].userBalance;
         // GLTR
         alchemicaFarms[4] = data[7].userBalance;
-        
+
         // Get balances of all alchemicas
         for (uint256 i; i < tokensAndLps.length; i++) {
             // 0 => msg.sender ALC balance
@@ -309,7 +385,7 @@ contract LiquidityHelper {
             );
             balancesIndex++;
 
-            // 1 => msg.sender LP balance staked in ALC-GHST farm  
+            // 1 => msg.sender LP balance staked in ALC-GHST farm
             balances[balancesIndex] = BalanceStruct(
                 tokensAndLps[i][1],
                 alchemicaFarms[i]
@@ -318,10 +394,11 @@ contract LiquidityHelper {
 
             // We get GHST and Alchemica balances that are in the pool TOTAL
             uint256 LpSupply = IERC20(tokensAndLps[i][1]).totalSupply();
-            uint256 AlcLpSupply = IERC20(tokensAndLps[i][0]).balanceOf(tokensAndLps[i][1]);
+            uint256 AlcLpSupply = IERC20(tokensAndLps[i][0]).balanceOf(
+                tokensAndLps[i][1]
+            );
             uint256 GhstLpSupply = IERC20(GHST).balanceOf(tokensAndLps[i][1]);
 
-            
             // 2 => msg.sender ALC balance stored staked in ALC-GHST farm
             balances[balancesIndex] = BalanceStruct(
                 tokensAndLps[i][0],
@@ -337,7 +414,9 @@ contract LiquidityHelper {
             balancesIndex++;
 
             // 4 => msg.sender ALC-GHST LP balance in wallet
-            uint256 WalletLpSupply = IERC20(tokensAndLps[i][1]).balanceOf(msg.sender);
+            uint256 WalletLpSupply = IERC20(tokensAndLps[i][1]).balanceOf(
+                msg.sender
+            );
             balances[balancesIndex] = BalanceStruct(
                 tokensAndLps[i][1],
                 WalletLpSupply
@@ -373,12 +452,8 @@ contract LiquidityHelper {
             balancesIndex++;
 
             // 9 => total GHST supply  in ALC-GHST LP
-            balances[balancesIndex] = BalanceStruct(
-                GHST,
-                GhstLpSupply
-            );
+            balances[balancesIndex] = BalanceStruct(GHST, GhstLpSupply);
             balancesIndex++;
-
         }
         return balances;
     }

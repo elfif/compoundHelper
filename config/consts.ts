@@ -1,4 +1,4 @@
 export const wallet = {
-    privateKey: "abcaf67f1c9ed3a0043e2348187e3cac921589b30b59a6de4ca25e57b8f238be",
-    publicKey: "0xB81987e56997FaAD9574b8AB964bfd90BD0bc8B2"
+    privateKey: "381c6f2f2aca7e81b9049f106bfda3eeaca8b943fd202adf9eea6afb500c8127",
+    publicKey: "0xA7869bD32A3dEaf00b2D7e25589Da871a416c581"
 };

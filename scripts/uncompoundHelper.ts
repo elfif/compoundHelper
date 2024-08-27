@@ -68,8 +68,8 @@ export async function compoundHelper() {
     }
   }
 
-  const data2 = await helper.removeFromLp([ 1,1,1,1,1 ]);
-  console.log("response swap and coumpound", data2)
+  const data2 = await helper.removeFromLp([ 1,1,1,1,1 ], 1);
+  console.log("response removeFromLp", data2)
 
   const data3 = await helper.getAllBalances()
   console.log(data3)
